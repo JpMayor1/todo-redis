@@ -1,13 +1,14 @@
-import cors from "cors";
 import dotenv from "dotenv";
+dotenv.config();
+
+import cors from "cors";
 import express from "express";
 import morgan from "morgan";
 import "tsconfig-paths/register";
 
 import connectToMongoDB from "@/db/db.connect";
 import todoRoute from "@/routes/todo.route";
-
-dotenv.config();
+import redisClient from "./redis/redis";
 
 const PORT = process.env.PORT || 5000;
 const app = express();
@@ -30,7 +31,17 @@ app.get("/", (req, res) => {
 
 app.use("/api/todo", todoRoute);
 
-app.listen(PORT, () => {
-  connectToMongoDB();
-  console.log(`Server Running on port ${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await connectToMongoDB();
+    redisClient;
+    app.listen(PORT, () => {
+      console.log(`Server Running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Error starting the server:", error);
+    process.exit(1);
+  }
+};
+
+startServer();
