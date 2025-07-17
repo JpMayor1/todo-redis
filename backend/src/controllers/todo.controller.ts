@@ -5,8 +5,18 @@ import { Request, Response } from "express";
 
 export const getTodos = async (req: Request, res: Response) => {
   try {
+    const cachedTodos = await redis.get("todos");
+    if (cachedTodos) {
+      // If cached, return it
+      return res.status(200).json({ todos: JSON.parse(cachedTodos) });
+    }
+
+    // If not cached, fetch from MongoDB
     const todos = await Todo.find();
+    // Cache the result in Redis with a TTL of 1 hour (3600 seconds)
     redis.setex("todos", 3600, JSON.stringify(todos));
+
+    // Return the fresh data from MongoDB
     res.status(200).json({ todos });
   } catch (error) {
     errorHandler(error, res);

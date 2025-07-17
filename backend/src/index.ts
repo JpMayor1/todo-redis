@@ -8,6 +8,7 @@ import "tsconfig-paths/register";
 
 import connectToMongoDB from "@/db/db.connect";
 import todoRoute from "@/routes/todo.route";
+import createTestTodos from "./helpers/createRodos";
 import redisClient from "./redis/redis";
 
 const PORT = process.env.PORT || 5000;
@@ -35,6 +36,7 @@ const startServer = async () => {
   try {
     await connectToMongoDB();
     redisClient;
+    await createTestTodos();
     app.listen(PORT, () => {
       console.log(`Server Running on port ${PORT}`);
     });
