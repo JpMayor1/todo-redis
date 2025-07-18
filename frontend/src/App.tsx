@@ -1,5 +1,5 @@
 import { CheckSquare } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Toaster } from "react-hot-toast";
 import LoadingSpinner from "./components/LoadingSpinner";
 import TodoFilter from "./components/TodoFilter";
@@ -9,11 +9,31 @@ import { useTodoStore } from "./stores/useTotoStore";
 
 function App() {
   const { getTodos, getLoading, todos, filter, setFilter } = useTodoStore();
+  const [page, setPage] = useState(1); // Initial page
 
   useEffect(() => {
-    const fetchTodos = async () => await getTodos();
+    // Fetch todos when page or loadingMore changes
+    const fetchTodos = async () => {
+      await getTodos(page);
+    };
     fetchTodos();
-  }, [getTodos]);
+  }, [getTodos, page]);
+
+  const handleScroll = () => {
+    // If the user scrolls to the bottom, load more to-dos
+    if (
+      window.innerHeight + document.documentElement.scrollTop ===
+      document.documentElement.offsetHeight
+    ) {
+      setPage((prevPage) => prevPage + 1); // Go to the next page
+    }
+  };
+
+  // Detect when the user reaches the bottom of the page
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const taskCounts = useMemo(
     () => ({
@@ -35,13 +55,6 @@ function App() {
     }
   }, [todos, filter]);
 
-  if (getLoading)
-    return (
-      <div className="h-screen w-screen flex items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    );
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
@@ -56,7 +69,7 @@ function App() {
 
         {/* Input Section */}
         <div className="mb-8 p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-          <TodoInput />
+          <TodoInput page={page} />
         </div>
 
         {/* Filter Section */}
@@ -122,11 +135,12 @@ function App() {
                 </div>
               )}
 
-              {filteredTodos.map((todo) => (
-                <TodoItem key={todo._id} {...todo} />
+              {filteredTodos.map((todo, index) => (
+                <TodoItem key={index} todo={todo} page={page} />
               ))}
             </>
           )}
+          {getLoading && <LoadingSpinner />}
         </div>
       </div>
       <Toaster />

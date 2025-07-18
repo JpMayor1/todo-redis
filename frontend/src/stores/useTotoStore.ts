@@ -19,11 +19,13 @@ export const useTodoStore = create<TodoStoreType>((set) => ({
   toggleLoading: false,
   deleteLoading: false,
 
-  getTodos: async () => {
+  getTodos: async (page) => {
     set({ getLoading: true });
     try {
-      const res = await getTodosApi();
-      set({ todos: res.data.todos });
+      const res = await getTodosApi(page);
+      set((state) => ({
+        todos: [...state.todos, ...res.data.todos],
+      }));
     } catch (error) {
       if (error instanceof AxiosError) {
         const errorMessage =
@@ -39,10 +41,10 @@ export const useTodoStore = create<TodoStoreType>((set) => ({
     }
   },
 
-  addTodo: async (text: string) => {
+  addTodo: async (text: string, page) => {
     set({ addLoading: true });
     try {
-      const res = await addTodoApi(text);
+      const res = await addTodoApi(text, page);
       set((state) => ({ todos: [...state.todos, res.data.todo] }));
       toast.success(res.data.message);
       return true;
@@ -62,13 +64,13 @@ export const useTodoStore = create<TodoStoreType>((set) => ({
     }
   },
 
-  toggleTodo: async (id) => {
+  toggleTodo: async (id, page) => {
     set({ toggleLoading: true });
     set((state) => ({
       loadingTodos: [...state.loadingTodos, id],
     }));
     try {
-      const res = await toggleTodoApi(id);
+      const res = await toggleTodoApi(id, page);
       set((state) => ({
         todos: state.todos.map((todo) =>
           todo._id === id ? { ...todo, completed: !todo.completed } : todo
@@ -95,10 +97,10 @@ export const useTodoStore = create<TodoStoreType>((set) => ({
     }
   },
 
-  deleteTodo: async (id: string) => {
+  deleteTodo: async (id, page) => {
     set({ deleteLoading: true });
     try {
-      const res = await deleteTodoApi(id);
+      const res = await deleteTodoApi(id, page);
       set((state) => ({
         todos: state.todos.filter((todo) => todo._id !== id),
       }));

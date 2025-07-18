@@ -17,10 +17,10 @@ export type TodoStoreType = {
   toggleLoading: boolean;
   deleteLoading: boolean;
 
-  getTodos: () => Promise<void>;
-  addTodo: (text: string) => Promise<boolean>;
-  toggleTodo: (id: string) => Promise<boolean>;
-  deleteTodo: (id: string) => Promise<boolean>;
+  getTodos: (page: number) => Promise<void>;
+  addTodo: (text: string, page: number) => Promise<boolean>;
+  toggleTodo: (id: string, page: number) => Promise<boolean>;
+  deleteTodo: (id: string, page: number) => Promise<boolean>;
 
   setFilter: (filter: "all" | "active" | "completed") => void;
 };

@@ -5,19 +5,27 @@ import { Request, Response } from "express";
 
 export const getTodos = async (req: Request, res: Response) => {
   try {
-    const cachedTodos = await redis.get("todos");
+    // Get pagination parameters from the query
+    const page = parseInt(req.query.page as string) || 1; // Default to page 1
+    const limit = parseInt(req.query.limit as string) || 20; // Default to 20 items per page
+
+    // Check if the todos are cached in Redis for this page and limit
+    const cacheKey = `todos:${page}`;
+    const cachedTodos = await redis.get(cacheKey);
     if (cachedTodos) {
-      // If cached, return it
+      // If cached, return the cached data
       return res.status(200).json({ todos: JSON.parse(cachedTodos) });
     }
 
-    // If not cached, fetch from MongoDB
-    const todos = await Todo.find();
-    // Cache the result in Redis with a TTL of 1 hour (3600 seconds)
-    redis.setex("todos", 3600, JSON.stringify(todos));
+    // If not cached, fetch from MongoDB with pagination
+    const todos = await Todo.find()
+      .skip((page - 1) * limit) // Skip the previous pages' data
+      .limit(limit); // Limit to the specified number of items per page
 
-    // Return the fresh data from MongoDB
-    res.status(200).json({ todos });
+    // Cache the result in Redis with a TTL of 1 hour (3600 seconds)
+    redis.setex(cacheKey, 3600, JSON.stringify(todos));
+
+    return res.status(200).json({ todos });
   } catch (error) {
     errorHandler(error, res);
   }
@@ -25,6 +33,7 @@ export const getTodos = async (req: Request, res: Response) => {
 
 export const addTodo = async (req: Request, res: Response) => {
   try {
+    const page = req.query.page as string;
     const { text } = req.body;
     if (!text) return res.status(400).json({ message: "Text is required." });
 
@@ -37,7 +46,7 @@ export const addTodo = async (req: Request, res: Response) => {
     if (!addedTodo)
       return res.status(500).json({ message: "Error adding todo." });
 
-    redis.del("todos");
+    redis.del(`todos:${page}`);
 
     res.status(201).json({ message: "Todo added.", todo: addedTodo });
   } catch (error) {
@@ -48,6 +57,7 @@ export const addTodo = async (req: Request, res: Response) => {
 export const updateTodo = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const page = req.query.page as string;
     const { text } = req.body;
 
     if (!id) return res.status(400).json({ message: "ID is required." });
@@ -62,7 +72,7 @@ export const updateTodo = async (req: Request, res: Response) => {
     if (!updatedTodo)
       return res.status(404).json({ message: "Todo not found." });
 
-    redis.del("todos");
+    redis.del(`todos:${page}`);
 
     res.status(200).json({ message: "Todo updated." });
   } catch (error) {
@@ -73,6 +83,7 @@ export const updateTodo = async (req: Request, res: Response) => {
 export const toggleTodo = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const page = req.query.page as string;
 
     if (!id) return res.status(400).json({ message: "ID is requried." });
 
@@ -86,7 +97,7 @@ export const toggleTodo = async (req: Request, res: Response) => {
 
     const updatedTodo = await todo.save();
 
-    redis.del("todos");
+    redis.del(`todos:${page}`);
 
     res.status(200).json({
       message: todo.completed
@@ -102,6 +113,7 @@ export const toggleTodo = async (req: Request, res: Response) => {
 export const deleteTodo = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const page = req.query.page as string;
 
     if (!id) return res.status(400).json({ message: "ID is required." });
 
@@ -110,7 +122,7 @@ export const deleteTodo = async (req: Request, res: Response) => {
     if (!deletedTodo)
       return res.status(404).json({ message: "Todo not found." });
 
-    redis.del("todos");
+    redis.del(`todos:${page}`);
 
     res.status(200).json({ message: "Todo deleted." });
   } catch (error) {

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useTodoStore } from "../stores/useTotoStore";
 import LoadingSpinner from "./LoadingSpinner";
 
-const TodoInput: React.FC = () => {
+const TodoInput: React.FC<{ page: number }> = ({ page }) => {
   const { addTodo, addLoading } = useTodoStore();
   const [inputValue, setInputValue] = useState("");
 
@@ -11,7 +11,7 @@ const TodoInput: React.FC = () => {
     e.preventDefault();
     const trimmedValue = inputValue.trim();
     if (trimmedValue) {
-      addTodo(trimmedValue);
+      addTodo(trimmedValue, page);
       setInputValue("");
     }
   };
